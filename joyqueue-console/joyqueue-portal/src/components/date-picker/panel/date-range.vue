@@ -5,7 +5,7 @@
       :class="wrapClasses">
       <div :class="[pickerPanelCls + '__body-wrapper']">
         <slot name="sidebar" :class="[pickerPanelCls + '__sidebar']"></slot>
-        <div :class="[pickerPanelCls + '__sidebar']" v-if="shortcuts">
+        <div :class="[pickerPanelCls + '__sidebar']" v-if="!outsideSelect && shortcuts">
           <button
             type="button"
             :class="[pickerPanelCls + '__shortcut']"
@@ -27,7 +27,7 @@
                   @input.native="handleDateInput($event, 'min')"
                   @change.native="handleDateChange($event, 'min')" />
               </span>
-              <span :class="[dateRangePickerCls + '__time-picker-wrap']" v-click-outside="handleMinTimeClose">
+              <span :class="[dateRangePickerCls + '__time-picker-wrap']" v-clickoutside="handleMinTimeClose">
                 <d-input
                   size="small"
                   :disabled="rangeState.selecting"
@@ -58,7 +58,7 @@
                   @input.native="handleDateInput($event, 'max')"
                   @change.native="handleDateChange($event, 'max')" />
               </span>
-              <span :class="[dateRangePickerCls + '__time-picker-wrap']" v-click-outside="handleMaxTimeClose">
+              <span :class="[dateRangePickerCls + '__time-picker-wrap']" v-clickoutside="handleMaxTimeClose">
                 <d-input
                   size="small"
                   :disabled="rangeState.selecting"
@@ -208,7 +208,7 @@ import {
   extractDateFormat,
   extractTimeFormat
 } from '../util'
-import {directive as ClickOutside} from 'v-click-outside-x'
+import Clickoutside from '../../../directives/clickoutside'
 import Locale from '../../../mixins/locale'
 import TimePicker from './time'
 import DateTable from '../basic/date-table'
@@ -238,7 +238,7 @@ export default {
 
   mixins: [Locale],
 
-  directives: { ClickOutside },
+  directives: { Clickoutside },
 
   data () {
     return {
@@ -251,7 +251,9 @@ export default {
       defaultValue: null,
       defaultTime: null,
       minDate: '',
+      minTime: '',
       maxDate: '',
+      maxTime: '',
       leftDate: new Date(),
       rightDate: nextMonth(new Date()),
       rangeState: {
@@ -261,6 +263,8 @@ export default {
         column: null
       },
       showTime: false,
+      outsideSelect: false,
+      shortcut: null,
       shortcuts: '',
       visible: '',
       disabledDate: '',
@@ -280,7 +284,7 @@ export default {
         this.dateRangePickerCls,
         `${clsPrefix}popper`,
         {
-          'has-sidebar': this.$slots.sidebar || this.shortcuts,
+          'has-sidebar': this.$slots.sidebar || !this.outsideSelect,
           'has-time': !!this.showTime
         },
         this.popperClass
@@ -363,6 +367,13 @@ export default {
 
     enableYearArrow () {
       return this.unlinkPanels && this.rightYear * 12 + this.rightMonth - (this.leftYear * 12 + this.leftMonth + 1) >= 12
+    },
+
+    datePickDisabled () {
+      if (this.shortcut && this.shortcut.custom) {
+        return false
+      }
+      return this.outsideSelect
     }
   },
 
@@ -528,9 +539,11 @@ export default {
     },
 
     handleRangePick (val, close = true) {
+      // if (this.datePickDisabled) return;
+
       const defaultTime = this.defaultTime || []
-      const minDate = modifyWithTimeString(val.minDate, defaultTime[0])
-      const maxDate = modifyWithTimeString(val.maxDate, defaultTime[1])
+      const minDate = modifyWithTimeString(val.minDate, defaultTime[0] || this.minDate)
+      const maxDate = modifyWithTimeString(val.maxDate, defaultTime[1] || this.maxDate)
 
       if (this.maxDate === maxDate && this.minDate === minDate) {
         return
@@ -555,6 +568,7 @@ export default {
     },
 
     handleMinTimePick (value, visible, first) {
+      this.minTime = value
       this.minDate = this.minDate || new Date()
       if (value) {
         this.minDate = modifyTime(this.minDate, value.getHours(), value.getMinutes(), value.getSeconds())
@@ -574,6 +588,7 @@ export default {
     },
 
     handleMaxTimePick (value, visible, first) {
+      this.minTime = value
       if (this.maxDate && value) {
         this.maxDate = modifyTime(this.maxDate, value.getHours(), value.getMinutes(), value.getSeconds())
       }

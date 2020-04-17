@@ -1,16 +1,3 @@
-/*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 import Vue from 'vue'
 import Config from '../../config'
 import Popper from '../../utils/vue-popper'
@@ -98,22 +85,22 @@ export default {
     if (this.popperVM) {
       this.popperVM.node = (
         <transition
-      name={ this.transition }
-      onAfterLeave={ this.doDestroy }>
-    <div
-      onMouseleave={ () => { this.setExpectedState(false); this.debounceClose() } }
-      onMouseenter= { () => { this.setExpectedState(true) } }
-      ref="popper"
-      role="tooltip"
-      id={this.tooltipId}
-      aria-hidden={ (this.disabled || !this.showPopper) ? 'true' : 'false' }
-      v-show={!this.disabled && this.showPopper}
-    class={
-        [ this.prefixCls + '__popper', 'is-' + this.theme, this.popperClass ]
-    }>
-      { this.$slots.content || this.content }
-    </div>
-      </transition>)
+          name={ this.transition }
+          onAfterLeave={ this.doDestroy }>
+          <div
+            onMouseleave={ () => { this.setExpectedState(false); this.debounceClose() } }
+            onMouseenter= { () => { this.setExpectedState(true) } }
+            ref="popper"
+            role="tooltip"
+            id={this.tooltipId}
+            aria-hidden={ (this.disabled || !this.showPopper) ? 'true' : 'false' }
+            v-show={!this.disabled && this.showPopper}
+            class={
+              [ this.prefixCls + '__popper', 'is-' + this.theme, this.popperClass ]
+            }>
+            { this.$slots.content || this.content }
+          </div>
+        </transition>)
     }
 
     if (!this.$slots.default || !this.$slots.default.length) return this.$slots.default
@@ -137,16 +124,16 @@ export default {
       on(this.referenceElm, 'mouseleave', this.hide)
       on(this.referenceElm, 'focus', () => {
         if (!this.$slots.default || !this.$slots.default.length) {
-        this.handleFocus()
-        return
-      }
-      const instance = this.$slots.default[0].componentInstance
-      if (instance && instance.focus) {
-        instance.focus()
-      } else {
-        this.handleFocus()
-      }
-    })
+          this.handleFocus()
+          return
+        }
+        const instance = this.$slots.default[0].componentInstance
+        if (instance && instance.focus) {
+          instance.focus()
+        } else {
+          this.handleFocus()
+        }
+      })
       on(this.referenceElm, 'blur', this.handleBlur)
       on(this.referenceElm, 'click', this.removeFocusing)
     }
@@ -191,12 +178,12 @@ export default {
       clearTimeout(this.timeout)
       this.timeout = setTimeout(() => {
         this.showPopper = true
-    }, this.delay)
+      }, this.delay)
 
       if (this.hideAfter > 0) {
         this.timeoutPending = setTimeout(() => {
           this.showPopper = false
-      }, this.hideAfter)
+        }, this.hideAfter)
       }
     },
 

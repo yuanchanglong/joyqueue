@@ -51,6 +51,18 @@
     <div v-if="$slots.prepend" slot="prepend" :class="[prefixCls + '-group-prepend']">
       <slot name="prepend"></slot>
     </div>
+    <div v-if="showShortCuts"
+         :class="[prefixCls + '-shortcuts-select']"
+         @click.stop="handleShortcutsSelect">
+      <d-select v-model="shortCutValue">
+        <d-option v-for="(shortcut, key) in pickerOptions.shortcuts"
+                  :value="key"
+                  :key="key"
+                  @click.stop="handleShortcutClick(shortcut)">
+          {{ shortcut.text }}
+        </d-option>
+      </d-select>
+    </div>
     <div :class="innerClasses">
       <Icon :class="[clsPrefix + 'input__icon', clsPrefix + 'range__icon']" :name="triggerClass"></Icon>
       <input
@@ -96,6 +108,8 @@ import Vue from 'vue'
 import Config from '../../config'
 import Icon from '../icon'
 import DInput from '../input/input.vue'
+import DSelect from '../select/select.vue'
+import DOption from '../select/option.vue'
 import {directive as ClickOutside} from 'v-click-outside-x'
 import { formatDate, parseDate, isDateObject, getWeekNumber } from './util'
 import Popper from '../../utils/vue-popper'
@@ -279,7 +293,7 @@ const parseAsFormatAndType = (value, customFormat, type, rangeSeparator = '-') =
   if (!value) return null
   const parser = (
     TYPE_VALUE_RESOLVER_MAP[type] ||
-      TYPE_VALUE_RESOLVER_MAP['default']
+    TYPE_VALUE_RESOLVER_MAP['default']
   ).parser
   const format = customFormat || DEFAULT_FORMATS[type]
   return parser(value, format, rangeSeparator)
@@ -289,18 +303,18 @@ const formatAsFormatAndType = (value, customFormat, type) => {
   if (!value) return null
   const formatter = (
     TYPE_VALUE_RESOLVER_MAP[type] ||
-      TYPE_VALUE_RESOLVER_MAP['default']
+    TYPE_VALUE_RESOLVER_MAP['default']
   ).formatter
   const format = customFormat || DEFAULT_FORMATS[type]
   return formatter(value, format)
 }
 
 /*
-   * Considers:
-   *   1. Date object
-   *   2. date string
-   *   3. array of 1 or 2
-   */
+ * Considers:
+ *   1. Date object
+ *   2. date string
+ *   3. array of 1 or 2
+ */
 const valueEquals = function (a, b) {
   // considers Date object and string
   const dateEquals = function (a, b) {
@@ -337,9 +351,9 @@ const validator = function (val) {
   // either: String, Array of String, null / undefined
   return (
     val === null ||
-      val === undefined ||
-      isString(val) ||
-      (Array.isArray(val) && val.length === 2 && val.every(isString))
+    val === undefined ||
+    isString(val) ||
+    (Array.isArray(val) && val.length === 2 && val.every(isString))
   )
 }
 
@@ -349,7 +363,7 @@ export default {
     duiForm: {
       default: ''
     },
-    lbuanFormItem: {
+    duiFormItem: {
       default: ''
     }
   },
@@ -402,10 +416,11 @@ export default {
       default: '-'
     },
     pickerOptions: {},
-    unlinkPanels: Boolean
+    unlinkPanels: Boolean,
+    selectShortCuts: Boolean
   },
 
-  components: { Icon, DInput },
+  components: { Icon, DInput, DSelect, DOption },
 
   directives: { ClickOutside },
 
@@ -417,7 +432,9 @@ export default {
       showClose: false,
       userInput: null,
       valueOnOpen: null, // value when picker opens, used to determine whether to emit change
-      unwatchPickerOptions: null
+      unwatchPickerOptions: null,
+      shortCutValue: 0,
+      curShortcut: null
     }
   },
 
@@ -448,6 +465,17 @@ export default {
       if (this.picker) {
         this.picker.defaultValue = val
       }
+    },
+    shortCutValue: {
+      immediate: true,
+      handler (val) {
+        if (this.showShortCuts) {
+          const shortcut = this.pickerOptions.shortcuts[val]
+          this.$nextTick(() => {
+            this.handleShortcutClick(shortcut)
+          })
+        }
+      }
     }
   },
 
@@ -463,7 +491,8 @@ export default {
       return [
         `${prefixCls}`,
         {
-          [`${prefixCls}-group`]: (this.$slots.prepend || this.$slots.append)
+          [`${prefixCls}-group`]: (this.$slots.prepend || this.$slots.append),
+          [`${prefixCls}-shortcuts`]: this.showShortCuts
         }
       ]
     },
@@ -606,6 +635,10 @@ export default {
 
     pickerDisabled () {
       return this.disabled || (this.duiForm || {}).disabled
+    },
+
+    showShortCuts () {
+      return this.pickerOptions && this.pickerOptions.outsideSelect && this.pickerOptions.shortcuts
     }
   },
 
@@ -832,6 +865,19 @@ export default {
       this.$emit('focus', this)
     },
 
+    handleShortcutsSelect () {
+      this.hidePicker()
+    },
+
+    handleShortcutClick (shortcut) {
+      this.curShortcut = shortcut
+      if (shortcut.onClick) {
+        shortcut.onClick(this)
+      } else if (shortcut.custom) {
+        this.$emit('input', shortcut.date)
+      }
+    },
+
     hidePicker () {
       if (this.picker) {
         this.picker.resetView && this.picker.resetView()
@@ -850,6 +896,7 @@ export default {
       this.updatePopper()
 
       this.picker.value = this.parsedValue
+      this.picker.shortcut = this.curShortcut
       this.picker.resetView && this.picker.resetView()
 
       this.$nextTick(() => {
@@ -905,6 +952,14 @@ export default {
 
       this.picker.$on('dodestroy', this.doDestroy)
       this.picker.$on('pick', (date = '', visible = false) => {
+        if (this.showShortCuts) {
+          this.pickerOptions.shortcuts.forEach((shortcut, index) => {
+            if (shortcut.custom) {
+              shortcut.date = this.formatToValue(date)
+              this.shortCutValue = index
+            }
+          })
+        }
         this.userInput = null
         this.pickerVisible = this.picker.visible = visible
         this.emitInput(date)

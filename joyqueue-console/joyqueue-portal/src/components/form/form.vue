@@ -5,10 +5,10 @@
 </template>
 <script>
 import Config from '../../config'
-import { merge } from '../../utils/assist';
+import { merge } from '../../utils/assist'
 
-const prefixCls = `${Config.clsPrefix}form`;
-const localePrefix = `${Config.localePrefix}.form.`;
+const prefixCls = `${Config.clsPrefix}form`
+const localePrefix = `${Config.localePrefix}.form.`
 
 export default {
   name: `${Config.namePrefix}Form`,
@@ -18,7 +18,7 @@ export default {
   provide () {
     return {
       duiForm: this
-    };
+    }
   },
 
   props: {
@@ -51,7 +51,7 @@ export default {
   watch: {
     rules () {
       if (this.validateOnRuleChange) {
-        this.validate(() => {});
+        this.validate(() => {})
       }
     }
   },
@@ -59,7 +59,7 @@ export default {
     return {
       prefixCls: prefixCls,
       fields: []
-    };
+    }
   },
   computed: {
     wrapClasses () {
@@ -69,59 +69,59 @@ export default {
           [`${prefixCls}--label-${this.labelPosition}`]: !!this.labelPosition,
           [`${prefixCls}--inline`]: !!this.inline
         }
-      ];
+      ]
     }
   },
   created () {
     this.$on(localePrefix + 'addField', (field) => {
       if (field) {
-        this.fields.push(field);
+        this.fields.push(field)
       }
-    });
+    })
     /* istanbul ignore next */
     this.$on(localePrefix + 'removeField', (field) => {
       if (field.prop) {
-        this.fields.splice(this.fields.indexOf(field), 1);
+        this.fields.splice(this.fields.indexOf(field), 1)
       }
-    });
+    })
   },
   methods: {
     resetFields () {
       if (!this.model) {
         process.env.NODE_ENV !== 'production' &&
-        console.warn('[DUI Warn][Form]model is required for resetFields to work.');
-        return;
+        console.warn('[DUI Warn][Form]model is required for resetFields to work.')
+        return
       }
       this.fields.forEach(field => {
-        field.resetField();
-      });
+        field.resetField()
+      })
     },
     clearValidate (props = []) {
       const fields = props.length
         ? this.fields.filter(field => props.indexOf(field.prop) > -1)
-        : this.fields;
+        : this.fields
       fields.forEach(field => {
-        field.clearValidate();
-      });
+        field.clearValidate()
+      })
     },
     validate (callback) {
       if (!this.model) {
-        console.warn('[DUI Warn][Form]model is required for validate to work!');
-        return;
+        console.warn('[DUI Warn][Form]model is required for validate to work!')
+        return
       }
 
-      let promise;
+      let promise
       // if no callback, return promise
       if (typeof callback !== 'function' && window.Promise) {
         promise = new window.Promise((resolve, reject) => {
           callback = function (valid) {
-            valid ? resolve(valid) : reject(valid);
-          };
-        });
+            valid ? resolve(valid) : reject(valid)
+          }
+        })
       }
 
-      let valid = true;
-      let count = 0;
+      let valid = true
+      let count = 0
       // 如果需要验证的fields为空，调用验证时立刻返回callback
       if (this.fields.length === 0 && callback) {
         /* eslint-disable */

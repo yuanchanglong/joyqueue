@@ -152,7 +152,9 @@ export const modifyWithTimeString = (date, time) => {
   if (date == null || !time) {
     return date
   }
-  time = parseDate(time, 'HH:mm:ss')
+  if (Object.prototype.toString.call(time) === '[object String]') {
+    time = parseDate(time, 'HH:mm:ss')
+  }
   return modifyTime(date, time.getHours(), time.getMinutes(), time.getSeconds())
 }
 

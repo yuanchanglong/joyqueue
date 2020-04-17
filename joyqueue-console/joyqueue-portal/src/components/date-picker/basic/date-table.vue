@@ -97,6 +97,11 @@ export default {
           column: null
         }
       }
+    },
+
+    isReadonly: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -401,6 +406,8 @@ export default {
     },
 
     handleClick (event) {
+      if (this.isReadonly) return
+
       let target = event.target
       if (target.tagName === 'SPAN') {
         target = target.parentNode.parentNode

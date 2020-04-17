@@ -21,14 +21,14 @@
 <script>
 import Config from '../../config'
 import Drop from '../select/dropdown-select.vue'
-import {directive as ClickOutside} from 'v-click-outside-x'
+import {directive as clickOutside} from 'v-click-outside-x'
 import { oneOf, findComponentUpward } from '../../utils/assist'
 
 const prefixCls = `${Config.clsPrefix}dropdown`
 
 export default {
   name: `${Config.namePrefix}Dropdown`,
-  directives: { ClickOutside },
+  directives: { clickOutside },
   components: { Drop },
   props: {
     trigger: {
@@ -125,7 +125,7 @@ export default {
     onClickoutside (e) {
       this.handleClose()
       this.handleRightClose()
-      if (this.currentVisible) this.$emit('on-clickoutside', e)
+      if (this.currentVisible) this.$emit('on-click-outside', e)
     },
     handleClose () {
       if (this.trigger === 'custom') return false

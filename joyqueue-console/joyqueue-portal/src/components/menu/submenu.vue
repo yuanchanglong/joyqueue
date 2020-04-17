@@ -1,7 +1,7 @@
 <template>
   <li :class="classes" @mouseenter="handleMouseenter" @mouseleave="handleMouseleave">
     <div :class="[prefixCls + '-submenu-title']" ref="reference" @click.stop="handleClick" :style="titleStyle">
-      <slot name="title"></slot>
+      <slot name="title"><icon v-if="icon" :name="icon" :color="color" :size="size"></icon>{{title}}</slot>
       <Icon name="chevron-down" :class="[prefixCls + '-submenu-title-icon']"></Icon>
     </div>
     <collapse-transition v-if="mode === 'vertical'">
@@ -21,7 +21,7 @@
 import Config from '../../config'
 import mixin from './mixin'
 import Emitter from '../../mixins/emitter'
-import { getStyle, findComponentUpward, findComponentsDownward } from '../../utils/assist'
+import { isColor, getStyle, findComponentUpward, findComponentsDownward } from '../../utils/assist'
 import Icon from '../icon'
 import CollapseTransition from '../../transitions/collapse-transition.js'
 const prefixCls = `${Config.clsPrefix}menu`
@@ -33,6 +33,15 @@ export default {
     name: {
       type: [String, Number],
       required: true
+    },
+    title: String,
+    icon: String,
+    size: [Number, String],
+    color: {
+      validator (value) {
+        if (!value) return true
+        return isColor(value)
+      }
     },
     disabled: {
       type: Boolean,
@@ -69,9 +78,11 @@ export default {
       return style
     },
     titleStyle () {
+      const selectedColor = this.icon && this.color && this.active ? {color: this.color} : {}
       return this.hasParentSubmenu && this.mode !== 'horizontal' ? {
-        paddingLeft: 43 + (this.parentSubmenuNum - 1) * 24 + 'px'
-      } : {}
+        paddingLeft: 43 + (this.parentSubmenuNum - 1) * 24 + 'px',
+        ...selectedColor
+      } : selectedColor
     }
   },
   methods: {

@@ -9,9 +9,9 @@
 </template>
 <script>
 import Config from '../../config'
-import { isColor } from '../../utils/assist';
+import { isColor } from '../../utils/assist'
 
-const prefixCls = `${Config.clsPrefix}icon`;
+const prefixCls = `${Config.clsPrefix}icon`
 
 export default {
   name: 'Icon',
@@ -21,8 +21,8 @@ export default {
     size: [Number, String],
     color: {
       validator (value) {
-        if (!value) return true;
-        return isColor(value);
+        if (!value) return true
+        return isColor(value)
       }
     },
     custom: {
@@ -33,34 +33,34 @@ export default {
   computed: {
     classes () {
       if (this.custom) {
-        return `icon-custom icon-custom-${this.name}`;
+        return `icon-custom icon-custom-${this.name}`
       }
-      return `${prefixCls} ${prefixCls}-${this.name}`;
+      return `${prefixCls} ${prefixCls}-${this.name}`
     },
     styles () {
-      let style = {};
+      let style = {}
 
       if (this.size) {
-        style['font-size'] = `${this.size}px`;
+        style['font-size'] = `${this.size}px`
       }
 
       if (this.color) {
-        style.color = this.color;
+        style.color = this.color
       }
 
-      return style;
+      return style
     }
   },
   methods: {
     handleClick (event) {
-      this.$emit('click', event);
+      this.$emit('click', event)
     },
     handleMouseOver (event) {
-      this.$emit('mouseover', event);
+      this.$emit('mouseover', event)
     },
     handleMouseMove (event) {
-      this.$emit('mousemove', event);
+      this.$emit('mousemove', event)
     }
   }
-};
+}
 </script>

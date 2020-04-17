@@ -52,15 +52,18 @@
         :class="dropdownCls"
         :prevElRect="dropPrevElRect()"
       >
-        <ul v-show="showNotFoundLabel" :class="[prefixCls + '-not-found']"><li>{{ localeNotFoundText }}</li></ul>
+        <ul v-show="showNotFoundLabel && !$slots.empty" :class="[prefixCls + '-not-found']"><li>{{ localeNotFoundText }}</li></ul>
+        <!--feature #5327-->
+        <ul v-if="showNotFoundLabel && $slots.empty" :class="[prefixCls + '-not-found']"  @mousedown.prevent><li><slot name="empty"></slot></li></ul>
+
         <ul
           :class="prefixCls + '-dropdown-list'"
         >
           <functional-options
-            v-if="(!remote) || (remote && !loading)"
-            :options="selectOptions"
-            :slot-update-hook="updateSlotOptions"
-            :slot-options="slotOptions"
+              v-if="(!remote) || (remote && !loading)"
+              :options="selectOptions"
+              :slot-update-hook="updateSlotOptions"
+              :slot-options="slotOptions"
           ></functional-options>
         </ul>
         <ul v-show="loading" :class="[prefixCls + '-loading']">{{ localeLoadingText }}</ul>
@@ -127,6 +130,16 @@ const getOptionLabel = option => {
   const innerHTML = getNestedProperty(option, 'data.domProps.innerHTML')
   return textContent || (typeof innerHTML === 'string' ? innerHTML : '')
 }
+
+const checkValuesNotEqual = (value, publicValue, values) => {
+  const strValue = JSON.stringify(value)
+  const strPublic = JSON.stringify(publicValue)
+  const strValues = JSON.stringify(values.map(item => {
+    return item.value
+  }))
+  return strValue !== strPublic || strValue !== strValues || strValues !== strPublic
+}
+
 const ANIMATION_TIMEOUT = 300
 export default {
   name: `${Config.namePrefix}Select`,
@@ -548,8 +561,14 @@ export default {
         }
         // enter
         if (e.key === 'Enter') {
-          if (this.focusIndex === -1) return this.hideMenu()
-          const optionComponent = this.flatOptions[this.focusIndex]
+          let optionComponent
+          if (this.filterable && this.query) {
+            optionComponent = this.selectOptions.length ? this.selectOptions[0] : null
+          } else {
+            if (this.focusIndex === -1) return this.hideMenu()
+            optionComponent = this.flatOptions[this.focusIndex]
+          }
+          if (!optionComponent) return this.hideMenu()
           const option = this.getOptionData(optionComponent.componentOptions.propsData.value)
           this.onOptionClick(option)
         }
@@ -649,11 +668,23 @@ export default {
   },
   watch: {
     value (value) {
-      const {getInitialValue, getOptionData, publicValue} = this
+      const {getInitialValue, getOptionData, publicValue, values} = this
+
       this.checkUpdateStatus()
+
+      const vModelValue = (publicValue && this.labelInValue)
+        ? (this.multiple ? publicValue.map(({value}) => value) : publicValue.value) : publicValue
+
       if (value === '') this.values = []
-      else if (JSON.stringify(value) !== JSON.stringify(publicValue)) {
-        this.$nextTick(function () { this.values = getInitialValue().map(getOptionData).filter(Boolean) })
+      else if (checkValuesNotEqual(value, vModelValue, values)) {
+        this.$nextTick(
+          () => {
+            this.values = getInitialValue().map(getOptionData).filter(Boolean)
+          }
+        )
+        if (!this.multiple) {
+          this.dispatch(`${Config.namePrefix}FormItem`, `${Config.localePrefix}.form.change`, this.publicValue)
+        }
       }
     },
     values (now, before) {
@@ -661,15 +692,13 @@ export default {
       const oldValue = JSON.stringify(before)
       // v-model is always just the value, event with labelInValue === true
       const vModelValue = (this.publicValue && this.labelInValue)
-        ? (this.multiple
-          ? this.publicValue.map(({value}) => value)
-          : this.publicValue.value)
+        ? (this.multiple ? this.publicValue.map(({value}) => value) : this.publicValue.value)
         : this.publicValue
       const shouldEmitInput = newValue !== oldValue && vModelValue !== this.value
       if (shouldEmitInput) {
         this.$emit('input', vModelValue) // to update v-model
         this.$emit('on-change', this.publicValue)
-        this.dispatch(`${Config.namePrefix}FormItem`, 'on-form-change', this.publicValue)
+        this.dispatch(`${Config.namePrefix}FormItem`, `${Config.localePrefix}.form.change`, this.publicValue)
       }
     },
     query (query) {

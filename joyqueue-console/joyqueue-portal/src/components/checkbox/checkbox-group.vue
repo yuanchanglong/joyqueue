@@ -86,7 +86,7 @@ export default {
       this.currentValue = data
       this.$emit('input', data)
       this.$emit('on-change', data)
-      this.dispatch(`${Config.namePrefix}FormItem`, 'on-form-change', data)
+      this.dispatch(`${Config.namePrefix}FormItem`, `${Config.localePrefix}.form.change`, data)
     }
   },
   watch: {

@@ -9,7 +9,7 @@
       <div :class="[prefixCls + '__header']" v-if="height">
         <table>
           <colgroup>
-            <col v-if="optional">
+            <col v-if="optional" :width="optionalColWidth">
             <col v-for="(column, index) in columnsData" :key="index" :width="setCellWidth(column, index)">
           </colgroup>
           <thead :class="[prefixCls + '__thead']" ref="header">
@@ -24,11 +24,14 @@
               v-for="(column, index) in columnsData" :key="index"
               :class="[prefixCls + '__cell', prefixCls + '__column', column.className]"
               :style="{
-                  cursor: column.sortType ? 'pointer' : 'text'
+                  cursor: column.sortable ? 'pointer' : ''
                 }"
-              @click="column.sortType && handleSort(index)">
+              @mousemove.stop="handleTitleMouseMove($event,column)"
+              @mousedown.stop="handleTitleMouseDown($event)"
+              @mouseout.stop="handleTitleMouseOut()"
+              @click="column.sortable && handleSort(index)">
               {{ column.title || '' }}
-              <template v-if="column.sortType">
+              <template v-if="column.sortable">
                 <div :class="[prefixCls + '__column-sorter', column._sortType === 'asc' ? 'sort-asc': 'sort-desc']">
                   <span :class="[prefixCls + '__column-sorter-up']" @click.stop="handleSort(index, 'asc')">
                     <Icon name="chevron-up"></Icon>
@@ -50,7 +53,7 @@
       <div :class="[prefixCls + '__body']" :style="bodyStyle">
         <table>
           <colgroup>
-            <col v-if="optional">
+            <col v-if="optional" :width="optionalColWidth">
             <col v-for="(column, index) in columnsData" :key="index" :width="setCellWidth(column, index)">
           </colgroup>
           <thead :class="[prefixCls + '__thead']" v-if="!height" ref="header">
@@ -65,11 +68,14 @@
               v-for="(column, index) in columnsData" :key="index"
               :class="[prefixCls + '__cell', prefixCls + '__column', column.className]"
               :style="{
-                  cursor: column.sortType ? 'pointer' : 'text'
+                  cursor: column.sortable ? 'pointer' : ''
                 }"
-              @click="column.sortType && handleSort(index)">
+              @mousemove.stop="handleTitleMouseMove($event,column)"
+              @mousedown.stop="handleTitleMouseDown($event)"
+              @mouseout.stop="handleTitleMouseOut()"
+              @click="column.sortable && handleSort(index)">
               {{ column.title || '' }}
-              <template v-if="column.sortType">
+              <template v-if="column.sortable">
                 <div :class="[prefixCls + '__column-sorter', column._sortType === 'asc' ? 'sort-asc': 'sort-desc']">
                   <span :class="[prefixCls + '__column-sorter-up']" @click.stop="handleSort(index, 'asc')">
                     <Icon name="chevron-up"></Icon>
@@ -86,7 +92,10 @@
 
           <tbody :class="[prefixCls + '__tbody']" v-if="sortData.length" ref="body">
           <template v-for="(item, index) in sortData">
-            <tr :key="index">
+            <tr :key="index"
+                :class="getRowClass(item, item.index)"
+                @click="clickCurrentRow(item.index)"
+                @dblclick.stop="dblclickCurrentRow(item.index)">
               <td v-if="optional" :class="selectionClasses">
                 <Checkbox v-model="objData[index].isChecked" @on-change="changeRowSelection"></Checkbox>
               </td>
@@ -113,7 +122,9 @@
           </tbody>
 
           <tbody :class="[prefixCls + '__tbody']" v-else>
-          <tr>
+          <tr
+            @click.native="clickCurrentRow(item.index)"
+            @dblclick.native.stop="dblclickCurrentRow(item.index)">
             <td :class="noDataClasses" :colspan="optional ? columns.length + 1 : columns.length">
               <slot name="emptyText">{{ t(localePrefix + 'noDataText') }}</slot>
             </td>
@@ -139,6 +150,16 @@
         @pagesize-change="pageSizeChange"></Pagination>
     </div>
     <!-- E Pagination -->
+
+    <!-- S Spin -->
+    <Spin fix size="large" v-if="loading">
+      <slot name="loading"></slot>
+    </Spin>
+    <!-- E Spin -->
+
+    <!-- S Drag Line -->
+    <div v-show="isDragging" :class="[prefixCls + '__drag-line']"></div>
+    <!-- E Drag Line -->
   </div>
 </template>
 
@@ -151,6 +172,8 @@ import {oneOf, getStyle, deepCopy, getPropByPath} from '../../utils/assist'
 import Icon from '../icon/icon.vue'
 import Checkbox from '../checkbox'
 import Pagination from '../pagination'
+import Spin from '../spin'
+import dragWidthMixin from '../../directives/drag-width-mixin.js'
 
 const prefixCls = `${Config.clsPrefix}table`
 const localePrefix = `${Config.localePrefix}.table.`
@@ -162,9 +185,10 @@ export default {
     Checkbox,
     Pagination,
     Cell,
-    Expand
+    Expand,
+    Spin
   },
-  mixins: [Locale],
+  mixins: [Locale, dragWidthMixin],
   props: {
     size: {
       default: 'default',
@@ -218,6 +242,21 @@ export default {
     },
     height: {
       type: [Number, String]
+    },
+    rowClassName: {
+      type: [String, Function]
+    },
+    optionalColWidth: {
+      type: Number,
+      default: 50
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    colWidthDrag: {
+      type: Boolean,
+      default: true
     }
   },
   data () {
@@ -338,6 +377,20 @@ export default {
     }
   },
   methods: {
+    getRowClass (row, index) {
+      const classes = []
+      const rowClassName = this.rowClassName
+      if (typeof rowClassName === 'string') {
+        classes.push(rowClassName)
+      } else if (typeof rowClassName === 'function') {
+        // eslint-disable-next-line
+        classes.push(rowClassName.call(null, {
+          row,
+          index
+        }))
+      }
+      return classes
+    },
     getColumnValue (row, column, index) {
       const property = column.key
       const value = property && getPropByPath(row, property).v
@@ -380,6 +433,7 @@ export default {
     },
     makeObjData () {
       const rowData = {}
+
       this.data.forEach((row, index) => {
         const newRow = deepCopy(row)
 
@@ -450,7 +504,7 @@ export default {
       const sortType = this.columnsData[index]._sortType
       const sortNameArr = ['normal', 'desc', 'asc']
 
-      if (this.columnsData[index].sortType) {
+      if (this.columnsData[index].sortable !== 'custom') {
         if (!type) {
           const tmpIdx = sortNameArr.indexOf(sortType)
           if (tmpIdx >= 0) {
@@ -466,7 +520,7 @@ export default {
       this.columnsData[index]._sortType = type
 
       this.$emit('on-sort-change', {
-        column: JSON.parse(JSON.stringify(this.columns[this.columnsData[index]._index])),
+        column: deepCopy(this.columns[this.columnsData[index]._index]),
         order: type,
         key
       })
@@ -483,6 +537,12 @@ export default {
       })
       return data
     },
+    clickCurrentRow (index) {
+      this.$emit('on-row-click', deepCopy(this.cloneData[index]), index)
+    },
+    dblclickCurrentRow (index) {
+      this.$emit('on-row-dblclick', deepCopy(this.cloneData[index]), index)
+    },
     getSelection () {
       const selectionIndexArray = []
       for (const i in this.objData) {
@@ -490,7 +550,7 @@ export default {
           selectionIndexArray.push(i | 0)
         }
       }
-      return JSON.parse(JSON.stringify(this.data.filter((data, index) => selectionIndexArray.indexOf(index) > -1)))
+      return deepCopy(this.data.filter((data, index) => selectionIndexArray.indexOf(index) > -1))
     },
     changeRowSelection () {
       const selection = this.getSelection()
@@ -551,8 +611,7 @@ export default {
       }
       const status = !data.isExpanded
       this.objData[index].isExpanded = status
-      let copyData = deepCopy(this.data)
-      this.$emit('on-expand', JSON.parse(JSON.stringify(copyData[index])), status)
+      this.$emit('on-expand', deepCopy(this.cloneData[index]), status)
     },
     expandCls (index) {
       return [

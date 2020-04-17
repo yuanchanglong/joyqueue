@@ -165,7 +165,7 @@ export default {
       } else {
         this.$emit('input', value);
         this.$emit('on-change', value, event);
-        this.dispatch(`${Config.namePrefix}FormItem`, 'on-form-change', value, event);
+        this.dispatch(`${Config.namePrefix}FormItem`, `${Config.localePrefix}.form.change`, value, event);
       }
     },
     updateValue () {

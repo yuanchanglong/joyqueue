@@ -8,10 +8,10 @@
     @click.ctrl="handleClickItem($event, true)"
     @click.meta="handleClickItem($event, true)"
     :style="itemStyle">
-    <icon v-if="icon" :name="icon" :color="color"></icon><slot></slot>
+    <icon v-if="icon" :name="icon" :color="color" :size="size"></icon><slot>{{title}}</slot>
   </a>
   <li v-else :class="classes" @click.stop="handleClickItem" :style="itemStyle">
-    <icon v-if="icon" :name="icon" :color="color"></icon><slot></slot>
+    <icon v-if="icon" :name="icon" :color="color" :size="size"></icon><slot>{{title}}</slot>
   </li>
 </template>
 <script>
@@ -29,7 +29,9 @@ export default {
       type: [String, Number],
       required: true
     },
+    title: String,
     icon: String,
+    size: [Number, String],
     color: {
       validator (value) {
         if (!value) return true
@@ -43,7 +45,8 @@ export default {
   },
   data () {
     return {
-      active: false
+      active: false,
+      parentSubMenu: null
     }
   },
   computed: {
@@ -58,7 +61,10 @@ export default {
       ]
     },
     itemStyle () {
-      const selectedColor = this.icon && this.color && this.active ? {color: this.color} : {}
+      const selectedColor = this.color && this.icon && this.active
+        ? {color: this.color}
+        : this.hasParentSubmenu && this.parentSubMenu && this.parentSubMenu.color && this.active
+          ? {color: this.parentSubMenu.color} : {}
       return this.hasParentSubmenu && this.mode !== 'horizontal' ? {
         paddingLeft: 43 + (this.parentSubmenuNum - 1) * 24 + 'px',
         ...selectedColor
@@ -73,9 +79,8 @@ export default {
         // 如果是 newWindow，直接新开窗口就行，无需发送状态
         this.handleCheckClick(event, newWindow)
       } else {
-        let parent = findComponentUpward(this, `${Config.namePrefix}Submenu`)
-
-        if (parent) {
+        this.parentSubMenu = findComponentUpward(this, `${Config.namePrefix}Submenu`)
+        if (this.parentSubMenu) {
           this.dispatch(`${Config.namePrefix}Submenu`, 'on-menu-item-select', this.name)
         } else {
           this.dispatch(`${Config.namePrefix}Menu`, 'on-menu-item-select', this.name)
@@ -85,6 +90,7 @@ export default {
     }
   },
   mounted () {
+    this.parentSubMenu = findComponentUpward(this, `${Config.namePrefix}Submenu`)
     this.$on('on-update-active-name', (name) => {
       if (this.name === name) {
         this.active = true
